@@ -1,15 +1,14 @@
-// use aether_lib::peer::Aether;
+mod socket_server;
+
 use std::io::Read;
-// use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use std::os::unix::net::UnixListener;
-use std::os::unix::net::UnixStream;
+use std::io::Write;
 use std::thread;
 use std::usize;
 
-fn recv_data(buf: &mut [u8], stream: &mut UnixStream) -> usize {
-    let n = stream.read(buf).unwrap();
-    return n;
-}
+use socket_server::socket_server::init_socket_server;
+
+pub const RECV_BUFFER_SIZE: usize = 2048;
+
 fn parse_data(data: &mut String, buf: &[u8]) -> usize {
     let mut n: String = String::new();
     let mut nn: usize = 0;
@@ -28,7 +27,8 @@ fn parse_data(data: &mut String, buf: &[u8]) -> usize {
     data.push_str(&data_);
     return nn;
 }
-fn parse_command(buf: &mut [u8; 1024]) {
+
+fn parse_command(buf: &mut [u8; RECV_BUFFER_SIZE]) {
     let n = buf.len();
     match buf[0] {
         // 1 for connect
@@ -63,42 +63,25 @@ fn parse_command(buf: &mut [u8; 1024]) {
         _ => println!("{}", "unknown"),
     }
 }
-fn accept_command(client_address: &mut UnixStream) {
-    let mut buf = [0; 1024];
-    let n: usize = recv_data(&mut buf, client_address);
-    if n == 0 {
-        // nothing received from client
-        return;
-    }
-    println!("accepting command");
-    parse_command(&mut buf);
-}
-fn handle_client(client: UnixStream) {
-    println!("{:?}", client);
-    let mut client_address = client;
 
+fn handle_client(mut client: (impl Read + Write)) {
     loop {
-        accept_command(&mut client_address);
+        let mut buf = [0; RECV_BUFFER_SIZE];
+        let n: usize = client.read(&mut buf).unwrap();
+        if n > 0 {
+            println!("accepting command");
+            parse_command(&mut buf);
+        }
     }
 }
 
 fn main() -> std::io::Result<()> {
     println!("Aether Service started ... ");
-    let path_socket = "./uds_socket3";
-    let listener = UnixListener::bind(path_socket)?;
+    let listener = init_socket_server().unwrap();
 
     // accept connections and process them, spawning a new thread for each one
-    for client in listener.incoming() {
-        match client {
-            Ok(client) => {
-                /* connection succeeded */
-                thread::spawn(|| handle_client(client));
-            }
-            Err(_err) => {
-                /* connection failed */
-                break;
-            }
-        }
+    for client in listener {
+        thread::spawn(|| handle_client(client));
     }
     Ok(())
 }
