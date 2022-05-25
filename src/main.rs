@@ -1,19 +1,12 @@
 mod handler;
 mod socket_server;
 
-use std::io::ErrorKind;
-use std::io::Read;
-use std::io::Write;
-use std::net::IpAddr;
-use std::net::Ipv4Addr;
-use std::net::SocketAddr;
-use std::thread;
-use std::usize;
+use std::io::{ErrorKind, Read, Write};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use std::{thread, usize};
 
 use aether_lib::peer::Aether;
-use log::error;
-use log::info;
-use log::trace;
+use log::{error, info, trace};
 use simple_logger::SimpleLogger;
 use socket_server::socket_server::init_socket_server;
 
