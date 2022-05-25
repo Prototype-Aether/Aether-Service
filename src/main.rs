@@ -1,3 +1,4 @@
+mod handler;
 mod socket_server;
 
 use std::io::ErrorKind;
@@ -15,6 +16,8 @@ use log::info;
 use log::trace;
 use simple_logger::SimpleLogger;
 use socket_server::socket_server::init_socket_server;
+
+use crate::handler::handle_command;
 
 pub const RECV_BUFFER_SIZE: usize = 2048;
 
@@ -41,6 +44,7 @@ fn handle_client(mut client: (impl Read + Write)) {
             trace!("Received command");
 
             // handle command
+            handle_command(&buf[0..n]);
 
             // respond to client
             match client.write(&buf) {
